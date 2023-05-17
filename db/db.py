@@ -26,9 +26,28 @@ def create_invoices_table():
 
     create_table_query = """
         CREATE TABLE invoices (
+            user_uuid VARCHAR(64),
             r_hash VARCHAR(64) PRIMARY KEY,
             query TEXT,
             used BOOLEAN NOT NULL DEFAULT FALSE
+        );
+    """
+
+    cursor.execute(create_table_query)
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+# Create users table
+def create_users_table():
+    connection = connect_to_database()
+    cursor = connection.cursor()
+
+    create_table_query = """
+        CREATE TABLE users (
+            user_uuid VARCHAR(64) PRIMARY KEY
+            credit_satoshis INT NOT NULL DEFAULT 0
         );
     """
 
@@ -80,15 +99,15 @@ def check_invoice_used(r_hash):
         connection.close()
 
 
-# Add the r_hash and query to the database
-def add_r_hash_and_query(r_hash, query):
+# Add the r_hash and query, and the user_uuid to the database
+def add_r_hash_and_query(r_hash, query, user_uuid):
     connection = connect_to_database()
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     insert_query = """
-        INSERT INTO invoices (r_hash, query) VALUES (%(r_hash)s, %(query)s)
+        INSERT INTO invoices (r_hash, query, user_uuid) VALUES (%(r_hash)s, %(query)s, %(user_uuid)s)
     """
-    cursor.execute(insert_query, {"r_hash": r_hash, "query": query})
+    cursor.execute(insert_query, {"r_hash": r_hash, "query": query, "user_uuid": user_uuid})
     connection.commit()
 
     cursor.close()
@@ -112,6 +131,87 @@ def lookup_query(r_hash):
             result = cursor.fetchone()
             query = result["query"]
             return query
+
+    finally:
+        cursor.close()
+        connection.close()
+
+# Add user by their uuid to database
+def add_user_uuid(uuid):
+    connection = connect_to_database()
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    insert_query = """
+        INSERT INTO users (user_uuid, credit_satoshis) VALUES (%(uuid)s, 0)
+    """
+    cursor.execute(insert_query, {"user_uuid": uuid})
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return uuid
+
+# Get user_uuid by r_hash:
+def lookup_user_by_r_hash(r_hash):
+    connection = connect_to_database()
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        select_query = """
+            SELECT user_uuid FROM invoices WHERE r_hash = %(r_hash)s
+        """
+        cursor.execute(select_query, {"r_hash": r_hash})
+
+        if cursor.rowcount > 0:
+            result = cursor.fetchone()
+            user_uuid = result["user_uuid"]
+            return user_uuid
+
+    finally:
+        cursor.close()
+        connection.close()
+
+# Get user credit_satoshis
+def lookup_user_credit(uuid):
+    connection = connect_to_database()
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        select_query = """
+            SELECT credit_satoshis FROM users WHERE uuid = %(uuid)s
+        """
+        cursor.execute(select_query, {"user_uuid": uuid})
+
+        if cursor.rowcount > 0:
+            result = cursor.fetchone()
+            credit_satoshis = result["credit_satoshis"]
+            return credit_satoshis
+
+    finally:
+        cursor.close()
+        connection.close()
+
+# Add credit_satoshis to user
+def set_user_credit(uuid, credit_satoshis, deduct=False):
+    connection = connect_to_database()
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        if deduct:
+            select_query = """
+                UPDATE users SET credit_satoshis = credit_satoshis - %(credit_satoshis)s WHERE uuid = %(uuid)s
+            """
+        else :
+            select_query = """
+                UPDATE users SET credit_satoshis = %(credit_satoshis)s WHERE uuid = %(uuid)s
+            """
+        cursor.execute(select_query, {"user_uuid": uuid, "credit_satoshis": credit_satoshis})
+
+        if cursor.rowcount > 0:
+            result = cursor.fetchone()
+            credit_satoshis = result["credit_satoshis"]
+            return credit_satoshis
 
     finally:
         cursor.close()
