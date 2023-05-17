@@ -46,6 +46,9 @@ def query_chatbot():
         # Parse the request data
         data = request.get_json()
 
+        if "uuid" in data:
+            
+
         # if query is not in data, return error
         if "query" not in data and "r_hash" not in data:
             response = jsonify({"message": "No query provided"})
@@ -68,7 +71,7 @@ def query_chatbot():
                     set_invoice_used(r_hash)
 
                 # lookup the query associated with the r_hash
-                query = lookup_query(r_hash)
+                query, stored_chat_history = lookup_query(r_hash)
 
                 # check if model is specified
                 if "model_selected" in data:
@@ -76,9 +79,16 @@ def query_chatbot():
                 else:
                     gpt_model = "gpt-3.5-turbo"
 
+                # Retrieve chat history from the database
+                chat_history = stored_chat_history if stored_chat_history else []
+
+                # Append the current user query to the chat history
+                chat_history.append({"role": "user", "content": query})
+
                 # Call the OpenAI API to generate a response
                 completion = openai.ChatCompletion.create(
-                    model= gpt_model, messages=[{"role": "user", "content": query}]
+                    model= gpt_model, 
+                    messages=[{"role": "user", "content": query}, {"role": "user", "content": "the country is nigeria"}]
                 )
 
                 # Extract the response text from the API response
@@ -101,13 +111,17 @@ def query_chatbot():
         else:
             # If r_hash isn't in request, generate an invoice
             query = data["query"]
+            #FOLLOWING MIGHT BE WRONG## Retrieve chat history from the database
+            ##chat_history = get_chat_history()
+            ## Append the current user query to the chat history
+            ##chat_history.append({"role": "user", "content": query})
             # generate an invoice
             invoice = generate_invoice(query)
             # Return the response to the client
             # convert r_hash from base64 to hex because for some reason LND returns it in base64
             r_hash = base64_to_hex(invoice["r_hash"])
             # add r_hash and query to database
-            add_r_hash_and_query(r_hash, query)
+            add_r_hash_and_query(r_hash, query, [])
             response = {
                 "message": "Payment Required",
                 "invoice": invoice["payment_request"],
@@ -120,6 +134,7 @@ def query_chatbot():
         error_message = f"An error occurred: {str(e)}"
         traceback.print_exc()  # Optional: Print the traceback for debugging purposes
         response = {"error": error_message}
+        return jsonify(response), 500
 
 
 # TODO: send file data in request
@@ -155,3 +170,4 @@ def query_chatbot():
 if __name__ == "__main__":
     app.run(debug=True)
     create_invoices_table()
+    

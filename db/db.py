@@ -28,7 +28,8 @@ def create_invoices_table():
         CREATE TABLE invoices (
             r_hash VARCHAR(64) PRIMARY KEY,
             query TEXT,
-            used BOOLEAN NOT NULL DEFAULT FALSE
+            used BOOLEAN NOT NULL DEFAULT FALSE,
+            chat_history JSONB NOT NULL DEFAULT '[]'
         );
     """
 
@@ -80,15 +81,15 @@ def check_invoice_used(r_hash):
         connection.close()
 
 
-# Add the r_hash and query to the database
-def add_r_hash_and_query(r_hash, query):
+# Add the r_hash, query, and chat_history  to the database
+def add_r_hash_and_query(r_hash, query, chat_history):
     connection = connect_to_database()
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     insert_query = """
-        INSERT INTO invoices (r_hash, query) VALUES (%(r_hash)s, %(query)s)
+        INSERT INTO invoices (r_hash, query, chat_history) VALUES (%(r_hash)s, %(query)s, %(chat_history)s)
     """
-    cursor.execute(insert_query, {"r_hash": r_hash, "query": query})
+    cursor.execute(insert_query, {"r_hash": r_hash, "query": query, "chat_history": chat_history})
     connection.commit()
 
     cursor.close()
@@ -104,14 +105,15 @@ def lookup_query(r_hash):
 
     try:
         select_query = """
-            SELECT query FROM invoices WHERE r_hash = %(r_hash)s
+            SELECT query, chat_history FROM invoices WHERE r_hash = %(r_hash)s
         """
         cursor.execute(select_query, {"r_hash": r_hash})
 
         if cursor.rowcount > 0:
             result = cursor.fetchone()
             query = result["query"]
-            return query
+            chat_history = result["chat_history"]
+            return query, chat_history
 
     finally:
         cursor.close()
