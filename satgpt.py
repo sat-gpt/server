@@ -170,7 +170,7 @@ def query_chatbot():
         return response, 500
 
 @app.route("/add-user", methods=["POST"])
-def add_user(user_uuid):
+def add_user():
     try:
         data = request.get_json()
 
@@ -189,7 +189,7 @@ def add_user(user_uuid):
         return response, 500
     
 @app.route("/get-credit", methods=["POST"])
-def get_credit(user_uuid):
+def get_credit():
     try:
         data = request.get_json()
 
@@ -200,6 +200,9 @@ def get_credit(user_uuid):
         if "user_uuid" in data:
             user_uuid = data["user_uuid"]
             credit_satoshis = lookup_user_credit(user_uuid)
+            if not credit_satoshis:
+                response = jsonify({"message": f"User {user_uuid} not found"})
+                return response, 404
             response = jsonify({"credit_satoshis": credit_satoshis})
             return response, 200
     except Exception as e:
@@ -209,7 +212,7 @@ def get_credit(user_uuid):
         return response, 500
 
 @app.route("/add-credit", methods=["POST"])
-def add_credit(user_uuid):
+def add_credit():
     try:
         data = request.get_json()
 
@@ -223,6 +226,7 @@ def add_credit(user_uuid):
             (paid, invoice) = check_payment(r_hash)
             if paid:
                 # Check that the invoice hasn't been used before
+                print('checking invoice used')
                 if check_invoice_used(r_hash):
                     # Return the response to the client
                     # What's a good error code that's not an error but doesn't return a response?

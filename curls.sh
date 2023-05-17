@@ -22,7 +22,12 @@ curl -X POST \
 
 curl -X POST \
      -H "Content-Type: application/json" \
-     -d '{ "user_uuid": "cd2b78e4-a83b-4d8c-b8bd-a0343ca641b4"}' \
+     -d '{ "user_uuid": "cd2b78e4-a83b-4d8c-b8bd-a0343ca641b4", "amount": 10 }' \
+     http://localhost:5000/add-credit
+
+curl -X POST \
+     -H "Content-Type: application/json" \
+     -d '{ "r_hash": "419a8af46102beaf7c6d7000723ed4bc6e85bb32817da1cdb6b70ee1b1fb254d" }' \
      http://localhost:5000/add-credit
 
 # ERROR TEST:

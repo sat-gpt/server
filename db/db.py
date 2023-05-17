@@ -137,20 +137,20 @@ def lookup_query(r_hash):
         connection.close()
 
 # Add user by their uuid to database
-def add_user_uuid(uuid):
+def add_user_uuid(user_uuid):
     connection = connect_to_database()
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     insert_query = """
-        INSERT INTO users (user_uuid, credit_satoshis) VALUES (%(uuid)s, 0)
+        INSERT INTO users (user_uuid, credit_satoshis) VALUES (%(user_uuid)s, 0)
     """
-    cursor.execute(insert_query, {"user_uuid": uuid})
+    cursor.execute(insert_query, {"user_uuid": user_uuid})
     connection.commit()
 
     cursor.close()
     connection.close()
 
-    return uuid
+    return user_uuid
 
 # Get user_uuid by r_hash:
 def lookup_user_by_r_hash(r_hash):
@@ -173,40 +173,44 @@ def lookup_user_by_r_hash(r_hash):
         connection.close()
 
 # Get user credit_satoshis
-def lookup_user_credit(uuid):
+def lookup_user_credit(user_uuid):
     connection = connect_to_database()
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     try:
         select_query = """
-            SELECT credit_satoshis FROM users WHERE uuid = %(uuid)s
+            SELECT credit_satoshis FROM users WHERE user_uuid = %(user_uuid)s
         """
-        cursor.execute(select_query, {"user_uuid": uuid})
+        cursor.execute(select_query, {"user_uuid": user_uuid})
 
         if cursor.rowcount > 0:
             result = cursor.fetchone()
             credit_satoshis = result["credit_satoshis"]
             return credit_satoshis
 
+    except Exception as e:
+        print(e)
+        raise e
+
     finally:
         cursor.close()
         connection.close()
 
 # Add credit_satoshis to user
-def set_user_credit(uuid, credit_satoshis, deduct=False):
+def set_user_credit(user_uuid, credit_satoshis, deduct=False):
     connection = connect_to_database()
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     try:
         if deduct:
             select_query = """
-                UPDATE users SET credit_satoshis = credit_satoshis - %(credit_satoshis)s WHERE uuid = %(uuid)s
+                UPDATE users SET credit_satoshis = credit_satoshis - %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
         else :
             select_query = """
-                UPDATE users SET credit_satoshis = %(credit_satoshis)s WHERE uuid = %(uuid)s
+                UPDATE users SET credit_satoshis = %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
-        cursor.execute(select_query, {"user_uuid": uuid, "credit_satoshis": credit_satoshis})
+        cursor.execute(select_query, {"user_uuid": user_uuid, "credit_satoshis": credit_satoshis})
 
         if cursor.rowcount > 0:
             result = cursor.fetchone()
