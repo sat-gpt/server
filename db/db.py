@@ -207,14 +207,17 @@ def set_user_credit(user_uuid, credit_satoshis, deduct=False):
                 UPDATE users SET credit_satoshis = credit_satoshis - %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
         else :
+            #I think this is the correct query: new credit_satoshis = old credit_satoshis + added credit_satoshis
             select_query = """
-                UPDATE users SET credit_satoshis = %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
+                UPDATE users SET credit_satoshis = credit_satoshis + %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
         cursor.execute(select_query, {"user_uuid": user_uuid, "credit_satoshis": credit_satoshis})
 
         if cursor.rowcount > 0:
-            result = cursor.fetchone()
-            credit_satoshis = result["credit_satoshis"]
+            # If at least one row was updated, commit the changes to the database
+            connection.commit()
+
+            # Return the updated credit_satoshis value
             return credit_satoshis
 
     finally:

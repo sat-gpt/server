@@ -92,14 +92,16 @@ def query_chatbot():
     try:
         # Parse the request data
         data = request.get_json()
-
+        print("here is the data in TRY ", data)
         # if query is not in data, return error
-        if "query" and "user_uuid" not in data and "r_hash" not in data:
+        if "query" not in data and "user_uuid" not in data and "r_hash" not in data:
             response = jsonify({"message": "No query provided"})
             return response, 400
 
         # check if we're in the middle of a payment
-        if "r_hash" in data:
+        elif "r_hash" in data:
+            #Is user credit checked here? 
+            print("here is the data in ELIF ", data)
             r_hash = data["r_hash"]
             (paid, invoice) = check_payment(r_hash)
             if paid:
@@ -148,9 +150,15 @@ def query_chatbot():
                 )
                 return response, 402
         else:
-            # If r_hash isn't in request, generate an invoice
+            
+            # If r_hash isn't in request, generate an invoice OR check if user has enough credit
+            print("here is the data in ELSE ", data)
             query = data["query"]
             user_uuid = data["user_uuid"]
+            #TODO: check if user has enough credit
+            '''cur_credit = lookup_user_credit(user_uuid)
+            if cur_credit < price(query):'''
+
             # generate an invoice
             invoice = generate_invoice(query)
             # convert r_hash from base64 to hex because for some reason LND returns it in base64
@@ -216,7 +224,7 @@ def add_credit():
     try:
         data = request.get_json()
 
-        if "user_uuid" and "amount" not in data and "r_hash" not in data:
+        if "user_uuid" not in data and "amount" not in data and "r_hash" not in data:
             response = jsonify({"message": "No user_uuid or r_hash provided"})
             return response, 400
         
@@ -226,7 +234,7 @@ def add_credit():
             (paid, invoice) = check_payment(r_hash)
             if paid:
                 # Check that the invoice hasn't been used before
-                print('checking invoice used')
+                print('!*!*!*!*!checking invoice used')
                 if check_invoice_used(r_hash):
                     # Return the response to the client
                     # What's a good error code that's not an error but doesn't return a response?
@@ -239,11 +247,13 @@ def add_credit():
                     # deduct credit from user
                     user_uuid = lookup_user_by_r_hash(r_hash)
                     amount = lookup_invoice(r_hash)["value"]
+                    print('!*!*!*!*!user id is ', user_uuid, "!*!*!*!*! amount is ", amount)
                     set_user_credit(user_uuid, amount)
 
-                # Return the response to the client
-                response = jsonify({"message": f'Added {amount} satoshis to user {user_uuid}'})
-                return response, 200 
+                    # Return the response to the client
+                    total_credit = lookup_user_credit(user_uuid)
+                    response = jsonify({"message": f'Added {amount} satoshis to user {user_uuid}, total credit is now {total_credit} satoshis.'})
+                    return response, 200 
             else:
                 # Return the response to the client
                 response = jsonify(
@@ -257,8 +267,9 @@ def add_credit():
         else:
             # If r_hash isn't in request, generate an invoice
             user_uuid = data["user_uuid"]
+            amount = data["amount"]
             invoice_description = f"Add credit to user {user_uuid}"
-            invoice = generate_invoice(invoice_description)
+            invoice = generate_invoice(invoice_description, amount)
             # convert r_hash from base64 to hex because for some reason LND returns it in base64
             r_hash = base64_to_hex(invoice["r_hash"])
             # add r_hash and description to database
