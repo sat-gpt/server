@@ -46,7 +46,7 @@ def create_users_table():
 
     create_table_query = """
         CREATE TABLE users (
-            user_uuid VARCHAR(64) PRIMARY KEY
+            user_uuid VARCHAR(64) PRIMARY KEY UNIQUE,
             credit_satoshis INT NOT NULL DEFAULT 0
         );
     """
@@ -207,7 +207,7 @@ def set_user_credit(user_uuid, credit_satoshis, deduct=False):
                 UPDATE users SET credit_satoshis = credit_satoshis - %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
         else :
-            #I think this is the correct query: new credit_satoshis = old credit_satoshis + added credit_satoshis
+            # credit_satoshis = old credit_satoshis + added credit_satoshis
             select_query = """
                 UPDATE users SET credit_satoshis = credit_satoshis + %(credit_satoshis)s WHERE user_uuid = %(user_uuid)s
             """
@@ -219,6 +219,23 @@ def set_user_credit(user_uuid, credit_satoshis, deduct=False):
 
             # Return the updated credit_satoshis value
             return credit_satoshis
+
+    finally:
+        cursor.close()
+        connection.close()
+
+# check if user_uuid exists
+def check_user_exists(user_uuid):
+    connection = connect_to_database()
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        select_query = """
+            SELECT user_uuid FROM users WHERE user_uuid = %(user_uuid)s
+        """
+        cursor.execute(select_query, {"user_uuid": user_uuid})
+
+        return cursor.rowcount > 0
 
     finally:
         cursor.close()
