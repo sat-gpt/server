@@ -95,8 +95,8 @@ def query_chatbot():
         print("here is the data in TRY ", data)
         # if query is not in data, return error
         if "r_hash" not in data:
-            if "query" not in data or "user_uuid" not in data:
-                response = jsonify({"message": "No query provided"})
+            if "query" not in data or "user_uuid" not in data or "model_selected" not in data:
+                response = jsonify({"message": f"Bad format - no query, user_uuid, or model_selected provided: {data}"})
                 return response, 400
             else:
                 # If r_hash isn't in request, generate an invoice OR check if user has enough credit
