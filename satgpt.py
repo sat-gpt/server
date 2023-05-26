@@ -166,7 +166,6 @@ def query_chatbot():
                     deduct_amount = cur_credit if cur_credit < SET_PRICE else amount
                     set_user_credit(user_uuid, deduct_amount, deduct=True)
 
-                # lookup the query associated with the r_hash
                 query = lookup_query(r_hash)
 
                 # check if model is specified
@@ -198,7 +197,7 @@ def query_chatbot():
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         traceback.print_exc() 
-        response = jsonify({"error": error_message})
+        response = jsonify({"message": error_message})
         return response, 500
 
 @app.route("/add-user", methods=["POST"])
@@ -217,7 +216,7 @@ def add_user():
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         traceback.print_exc()
-        response = jsonify({"error": error_message})
+        response = jsonify({"message": error_message})
         return response, 500
     
 @app.route("/get-credit", methods=["POST"])
@@ -240,7 +239,7 @@ def get_credit():
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         traceback.print_exc()
-        response = jsonify({"error": error_message})
+        response = jsonify({"message": error_message})
         return response, 500
 
 @app.route("/add-credit", methods=["POST"])
@@ -313,7 +312,7 @@ def add_credit():
         # Return an error response if an exception occurs
         error_message = f"An error occurred: {str(e)}"
         traceback.print_exc()
-        response = jsonify({"error": error_message})
+        response = jsonify({"message": error_message})
         return response, 500
 
 # TODO: send file data in request
