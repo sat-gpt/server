@@ -120,7 +120,7 @@ def query_chatbot():
                         "invoice": invoice["payment_request"],
                         "r_hash": r_hash,
                     })
-                    return response, 200
+                    return response, 402 
                 else:
                     set_user_credit(user_uuid, SET_PRICE, deduct=True)
 
