@@ -41,58 +41,13 @@ def generate_invoice(query, amount):
 def check_payment(r_hash):
     invoice = lookup_invoice(r_hash)
     paid = invoice["settled"]
-    return (paid, invoice)
-
-# TODO: how can we integrate check-payment into the query endpoint?
-# how does /query know that check_payment has been paid?
-# @app.route('/check-payment', methods=['POST'])
-# def check_payment():
-#     try:
-#         data = request.get_json()
-
-#         if "r_hash" not in data:
-#             response = jsonify({"message": "No query provided"})
-#             return response, 400
-
-#         r_hash = data["r_hash"]
-#         (paid, invoice) = check_payment(r_hash)
-#         if paid:
-#             if check_invoice_used(r_hash):
-#                 response = jsonify({"message": "Payment already used"})
-#                 # What's a good error code that's not an error but doesn't return a response?
-#                 # A neutral code?
-#                 return response, 200
-#             else:
-#                 set_invoice_used(r_hash)
-#                 # deduct credit from user
-#                 user_uuid = lookup_user_by_r_hash(r_hash)
-#                 amount = lookup_invoice(r_hash)["value"]
-#                 set_user_credit(user_uuid, amount, deduct=True)
-
-#             response = jsonify({"message": "Payment successful"})
-#             return response, 200
-#         else:
-#             response = jsonify(
-#                 {
-#                     "message": "Payment Required",
-#                     "payment_request": invoice["payment_request"],
-#                     "memo": invoice["memo"],
-#                 }
-#             )
-#             return response, 402
-#     except Exception as e:
-#         # Return an error response if an exception occurs
-#         error_message = f"An error occurred: {str(e)}"
-#         traceback.print_exc()  # Optional: Print the traceback for debugging purposes
-#         response = {"error": error_message}
-#         return jsonify(response)    
+    return (paid, invoice)   
 
 @app.route("/query", methods=["POST"])
 def query_chatbot():
     try:
         # Parse the request data
         data = request.get_json()
-        print("here is the data in TRY ", data)
         # if query is not in data, return error
         if "r_hash" not in data:
             if "query" not in data or "user_uuid" not in data or "model_selected" not in data:
@@ -100,7 +55,6 @@ def query_chatbot():
                 return response, 400
             else:
                 # If r_hash isn't in request, generate an invoice OR check if user has enough credit
-                print("here is the data in ELSE ", data)
                 query = data["query"]
                 user_uuid = data["user_uuid"]
                 # check if user already exists
@@ -144,7 +98,6 @@ def query_chatbot():
 
         # check if we're in the middle of a payment
         else:
-            print("here is the data in ELIF ", data)
             r_hash = data["r_hash"]
             (paid, invoice) = check_payment(r_hash)
             if paid:
@@ -204,11 +157,9 @@ def query_chatbot():
 def add_user():
     try:
         data = request.get_json()
-
         if "user_uuid" not in data:
             response = jsonify({"message": "No user_id provided"})
             return response, 400
-
         user_uuid = data["user_uuid"]
         add_user_uuid(user_uuid)
         response = jsonify({"message": "User added"})
@@ -223,11 +174,9 @@ def add_user():
 def get_credit():
     try:
         data = request.get_json()
-
         if "user_uuid" not in data:
             response = jsonify({"message": "No user_uuid provided"})
             return response, 400
-
         else:
             user_uuid = data["user_uuid"]
             if not check_user_exists(user_uuid):
@@ -277,7 +226,6 @@ def add_credit():
             (paid, invoice) = check_payment(r_hash)
             if paid:
                 # Check that the invoice hasn't been used before
-                print('!*!*!*!*!checking invoice used')
                 if check_invoice_used(r_hash):
                     # Return the response to the client
                     # What's a good error code that's not an error but doesn't return a response?
@@ -290,7 +238,6 @@ def add_credit():
                     # deduct credit from user
                     user_uuid = lookup_user_by_r_hash(r_hash)
                     amount = lookup_invoice(r_hash)["value"]
-                    print('!*!*!*!*!user id is ', user_uuid, "!*!*!*!*! amount is ", amount)
                     set_user_credit(user_uuid, amount)
 
                     # Return the response to the client
@@ -314,36 +261,7 @@ def add_credit():
         traceback.print_exc()
         response = jsonify({"message": error_message})
         return response, 500
-
-# TODO: send file data in request
-# translate audio files (TODO: list which audio types are supported)
-# @app.route('/audio', methods=['GET'])
-# def summarize_audio():
-#     # Parse the request data
-#     data = request.get_json()
-#     query = data['query']
-
-#     # Call the OpenAI API to generate a response
-#     f = open("testfile.mp3", "rb")
-#     transcript = openai.Audio.transcribe("whisper-1", f)
-#     prompt = f"Summarize the following text: {transcript}"
-#     summary = openai.Completion.create(
-#         engine="text-davinci-002",
-#         prompt=prompt,
-#         max_tokens=60,
-#         n=1,
-#         stop=None,
-#         temperature=0.7,
-#     )
-
-
-#     # Extract the response text from the API response
-#     message = summary.choices[0].text.strip()
-
-#     # Return the response to the client
-#     return jsonify({'message': message})
-
-
+    
 # Start the Flask app on localhost:5000
 if __name__ == "__main__":
     app.run(debug=True)
