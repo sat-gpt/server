@@ -159,7 +159,12 @@ def query_chatbot():
                     # deduct credit from user
                     user_uuid = lookup_user_by_r_hash(r_hash)
                     amount = lookup_invoice(r_hash)["value"]
-                    set_user_credit(user_uuid, amount, deduct=True)
+                    cur_credit = lookup_user_credit(user_uuid)
+                    # If the current credit was less than the SET_PRICE,
+                    # then the user paid an invoice such that:
+                    # SET_PRICE - (invoice amount + current credit) = 0
+                    deduct_amount = cur_credit if cur_credit < SET_PRICE else amount
+                    set_user_credit(user_uuid, deduct_amount, deduct=True)
 
                 # lookup the query associated with the r_hash
                 query = lookup_query(r_hash)
